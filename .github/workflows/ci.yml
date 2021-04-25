@@ -1,0 +1,72 @@
+name: ci
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: test
+    env:
+      CARGO: cargo
+      TARGET_DIR: ./target
+      RUST_BACKTRACE: 1
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        build:
+        - nightly
+        - macos
+        - win-msvc
+        - win-gnu
+        include:
+          - build: nightly
+            os: ubuntu-18.04
+            rust: nightly
+          - build: macos
+            os: macos-latest
+            rust: nightly
+          - build: win-msvc
+            os: windows-2019
+            rust: nightly
+          - build: win-gnu
+            os: windows-2019
+            rust: nightly-x86_64-gnu
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ matrix.rust }}
+        profile: minimal
+        override: true
+
+    - name: Build minigrep and all crates
+      run: ${{ env.CARGO }} build --verbose --all
+
+    - name: Run tests
+      run: ${{ env.CARGO }} test --verbose --all
+
+  rustfmt:
+    name: rustfmt
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        profile: minimal
+        components: rustfmt
+    - name: Check formatting
+      run: |
+        cargo fmt --all -- --check
