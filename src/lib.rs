@@ -6,9 +6,9 @@ use std::error::Error;
 use std::fs;
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let contents = fs::read_to_string(config.filename)?;
+    let contents = fs::read_to_string(&config.path)?;
 
-    for line in search(&config.query, &contents) {
+    for line in search(&config.pattern, &contents) {
         println!("{}", line);
     }
 
