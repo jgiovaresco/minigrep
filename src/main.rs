@@ -1,3 +1,6 @@
+use clap_verbosity_flag::Verbosity;
+use env_logger::Builder as LoggerBuilder;
+use log::{debug, LevelFilter};
 use std::process;
 use structopt::StructOpt;
 
@@ -11,16 +14,27 @@ struct Cli {
     /// The path to the file to read
     #[structopt(parse(from_os_str))]
     path: std::path::PathBuf,
+    #[structopt(flatten)]
+    verbose: Verbosity,
 }
 
 fn main() {
     let args = Cli::from_args();
+    let level_filter = match args.verbose.log_level() {
+        Some(level) => level.to_level_filter(),
+        None => LevelFilter::Off,
+    };
+    LoggerBuilder::new()
+        .filter(None, level_filter)
+        .try_init()
+        .unwrap();
+
     let config = Config {
         pattern: args.pattern,
         path: args.path,
     };
 
-    println!(
+    debug!(
         "Searching for '{}', in file '{}':\n",
         config.pattern,
         config.path.display()
