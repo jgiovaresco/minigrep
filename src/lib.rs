@@ -2,11 +2,12 @@ mod config;
 
 pub use config::Config;
 
-use std::error::Error;
+use anyhow::{Context, Result};
 use std::fs;
 
-pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let contents = fs::read_to_string(&config.path)?;
+pub fn run(config: Config) -> Result<()> {
+    let contents = fs::read_to_string(&config.path)
+        .with_context(|| format!("could not read {}", config.path.display()))?;
 
     for line in search(&config.pattern, &contents) {
         println!("{}", line);
