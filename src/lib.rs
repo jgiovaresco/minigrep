@@ -8,13 +8,21 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(args: &[String]) -> Result<Config, &str> {
-        if args.len() < 3 {
-            return Err("not enough arguments");
-        }
+    pub fn new<T>(mut args: T) -> Result<Config, &'static str>
+    where
+        T: Iterator<Item = String>,
+    {
+        args.next();
 
-        let query = args[1].clone();
-        let filename = args[2].clone();
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("not enough arguments"),
+        };
+
+        let filename = match args.next() {
+            Some(arg) => arg,
+            None => return Err("not enough arguments"),
+        };
 
         return Ok(Config { query, filename });
     }
@@ -37,15 +45,10 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    let mut results = Vec::new();
-
-    for line in contents.lines() {
-        if line.contains(query) {
-            results.push(line);
-        }
-    }
-
-    return results;
+    return contents
+        .lines()
+        .filter(|line| line.contains(query))
+        .collect();
 }
 
 #[cfg(test)]
@@ -54,28 +57,23 @@ mod tests {
 
     #[test]
     fn config_extracts_config_from_args() -> Result<(), String> {
-        let query = "search text";
-        let filename = "filename";
-
-        let args: Vec<String> = vec!["minigrep", query, filename]
-            .iter()
-            .map(|a| String::from(*a))
-            .collect();
+        let args = vec!["minigrep", "search text", "filename"];
+        let args_iter = args.iter().map(|a| a.to_string());
 
         assert_eq!(
-            Config::new(&args)?,
-            Config {
-                query: String::from(query),
-                filename: String::from(filename)
-            }
+            Config::new(args_iter),
+            Ok(Config {
+                query: "search text".to_string(),
+                filename: "filename".to_string()
+            })
         );
         Ok(())
     }
 
     #[test]
     fn config_returns_err_when_not_enough_args() {
-        let args: Vec<String> = vec![];
-        assert_eq!(Config::new(&args).err(), Some("not enough arguments"));
+        let args = ["minigrep"].iter().map(|a| a.to_string());
+        assert_eq!(Config::new(args), Err("not enough arguments"));
     }
 
     #[test]
